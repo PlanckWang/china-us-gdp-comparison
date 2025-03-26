@@ -19,23 +19,16 @@
                     <option value="nominal">名义GDP</option>
                     <option value="real">实际GDP(剔除通胀)</option>
                     <option value="ppp">GDP(PPP)</option>
-                    <option value="nominal-growth">名义GDP增速</option>
-                    <option value="real-growth">实际GDP增速</option>
-                    <option value="ppp-growth">GDP(PPP)增速</option>
                 </select>
             </div>
             <div class="view-toggle">
-                <button id="static-view" class="active">静态视图</button>
-                <button id="interactive-view">交互视图</button>
+                <button id="value-view" class="active">GDP数值</button>
+                <button id="growth-view">增速对比</button>
             </div>
         </div>
         
-        <div id="static-chart-container" class="chart-container active">
+        <div id="chart-container" class="chart-container active">
             <div id="chart"></div>
-        </div>
-        
-        <div id="interactive-chart-container" class="chart-container">
-            <div id="interactive-chart"></div>
         </div>
         
         <div class="description">
