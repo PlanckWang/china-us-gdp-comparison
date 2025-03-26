@@ -82,7 +82,6 @@ select {
 }
 
 .chart-container {
-    display: none;
     width: 100%;
     height: 500px;
     background-color: white;
@@ -91,11 +90,7 @@ select {
     margin-bottom: 20px;
 }
 
-.chart-container.active {
-    display: block;
-}
-
-#chart, #interactive-chart {
+#chart {
     width: 100%;
     height: 100%;
 }
@@ -122,29 +117,6 @@ ul {
     pointer-events: none;
     z-index: 10;
     font-size: 14px;
-}
-
-/* 交互式视图特殊样式 */
-.interactive-controls {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 10px;
-}
-
-.interactive-controls button {
-    margin: 0 5px;
-    padding: 5px 10px;
-    border-radius: 20px;
-    border: 1px solid #3498db;
-    background-color: white;
-    color: #3498db;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.interactive-controls button.active {
-    background-color: #3498db;
-    color: white;
 }
 
 @media (max-width: 768px) {
