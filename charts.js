@@ -10,76 +10,73 @@ const colors = {
 
 // 当前选择的图表类型
 let currentChartType = 'nominal';
-// 当前视图类型 (静态/交互式)
-let currentView = 'static';
+// 当前是否显示增速
+let showGrowth = false;
 
 // 初始化后获取DOM元素
 document.addEventListener('DOMContentLoaded', () => {
     // 初始化图表
-    initCharts();
+    initChart();
     
     // 绑定事件监听器
     const chartTypeSelector = document.getElementById('chart-type');
     chartTypeSelector.addEventListener('change', (e) => {
         currentChartType = e.target.value;
-        updateCharts();
+        updateChart();
     });
     
     // 视图切换按钮
-    const staticViewBtn = document.getElementById('static-view');
-    const interactiveViewBtn = document.getElementById('interactive-view');
+    const valueViewBtn = document.getElementById('value-view');
+    const growthViewBtn = document.getElementById('growth-view');
     
-    staticViewBtn.addEventListener('click', () => {
-        currentView = 'static';
+    valueViewBtn.addEventListener('click', () => {
+        showGrowth = false;
         updateActiveView();
-        updateCharts();
+        updateChart();
     });
     
-    interactiveViewBtn.addEventListener('click', () => {
-        currentView = 'interactive';
+    growthViewBtn.addEventListener('click', () => {
+        showGrowth = true;
         updateActiveView();
-        updateCharts();
+        updateChart();
     });
+    
+    // 初始渲染
+    updateActiveView();
+    updateChart();
 });
 
 // 更新当前激活的视图
 function updateActiveView() {
     // 更新按钮状态
-    document.getElementById('static-view').classList.toggle('active', currentView === 'static');
-    document.getElementById('interactive-view').classList.toggle('active', currentView === 'interactive');
-    
-    // 更新容器显示
-    document.getElementById('static-chart-container').classList.toggle('active', currentView === 'static');
-    document.getElementById('interactive-chart-container').classList.toggle('active', currentView === 'interactive');
+    document.getElementById('value-view').classList.toggle('active', !showGrowth);
+    document.getElementById('growth-view').classList.toggle('active', showGrowth);
 }
 
 // 初始化图表
-function initCharts() {
-    // 创建静态图表实例
-    staticChart = echarts.init(document.getElementById('chart'));
-    // 创建交互式图表实例
-    interactiveChart = echarts.init(document.getElementById('interactive-chart'));
-    
-    // 初始渲染
-    updateCharts();
+function initChart() {
+    // 创建图表实例
+    window.chart = echarts.init(document.getElementById('chart'));
 }
 
 // 更新图表显示
-function updateCharts() {
-    if (currentView === 'static') {
-        renderStaticChart();
-    } else {
-        renderInteractiveChart();
-    }
+function updateChart() {
+    renderChart();
 }
 
-// 渲染静态图表
-function renderStaticChart() {
-    // 从当前选择获取数据
-    const chartData = getChartData(currentChartType);
+// 渲染图表
+function renderChart() {
+    // 确定基于当前选择的数据类型和是否显示增速
+    let dataKey = currentChartType;
+    if (showGrowth) {
+        dataKey = currentChartType + '-growth';
+    }
+    
+    // 获取数据
+    const chartData = getChartData(dataKey);
     
     // 确定标题和单位
-    const {title, unit, isGrowth} = getChartInfo(currentChartType);
+    const {title, unit, isGrowth} = getChartInfo(dataKey);
     
     // 配置选项
     const option = {
@@ -102,7 +99,7 @@ function renderStaticChart() {
                     const value = param.value !== null && param.value !== undefined ? param.value : '无数据';
                     const formattedValue = isGrowth ? formatPercent(value) : formatNumber(value);
                     
-                    const countryName = param.seriesName === 'china' ? '中国' : '美国';
+                    const countryName = param.seriesName === '中国' ? '中国' : '美国';
                     result += countryName + ': ' + formattedValue + '<br/>';
                 });
                 
@@ -123,6 +120,31 @@ function renderStaticChart() {
             bottom: 60,
             containLabel: true
         },
+        toolbox: {
+            feature: {
+                dataZoom: {},
+                restore: {},
+                saveAsImage: {}
+            },
+            right: 20,
+            top: 20
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                start: 0,
+                end: 100,
+                xAxisIndex: [0]
+            },
+            {
+                type: 'slider',
+                start: 0,
+                end: 100,
+                bottom: 10,
+                height: 20,
+                xAxisIndex: [0]
+            }
+        ],
         xAxis: {
             type: 'category',
             data: gdpData.years,
@@ -176,8 +198,8 @@ function renderStaticChart() {
                 lineStyle: {
                     width: 3,
                     shadowColor: 'rgba(0, 0, 0, 0.3)',
-                    shadowBlur: 10,
-                    shadowOffsetY: 5
+                    shadowBlur: 5,
+                    shadowOffsetY: 3
                 },
                 emphasis: {
                     itemStyle: {
@@ -208,8 +230,8 @@ function renderStaticChart() {
                 lineStyle: {
                     width: 3,
                     shadowColor: 'rgba(0, 0, 0, 0.3)',
-                    shadowBlur: 10,
-                    shadowOffsetY: 5
+                    shadowBlur: 5,
+                    shadowOffsetY: 3
                 },
                 emphasis: {
                     itemStyle: {
@@ -232,350 +254,7 @@ function renderStaticChart() {
     };
     
     // 渲染图表
-    staticChart.setOption(option, true);
-}
-
-// 渲染交互式图表
-function renderInteractiveChart() {
-    // 获取不同指标的数据
-    const nominalData = getChartData('nominal');
-    const realData = getChartData('real');
-    const pppData = getChartData('ppp');
-    const nominalGrowthData = getChartData('nominal-growth');
-    const realGrowthData = getChartData('real-growth');
-    const pppGrowthData = getChartData('ppp-growth');
-    
-    // 图表信息
-    const nominalInfo = getChartInfo('nominal');
-    const realInfo = getChartInfo('real');
-    const pppInfo = getChartInfo('ppp');
-    const nominalGrowthInfo = getChartInfo('nominal-growth');
-    const realGrowthInfo = getChartInfo('real-growth');
-    const pppGrowthInfo = getChartInfo('ppp-growth');
-    
-    // 交互式图表配置
-    const option = {
-        backgroundColor: '#fff',
-        title: {
-            text: '中美GDP全面对比(1978-至今)',
-            left: 'center',
-            top: 10,
-            textStyle: {
-                fontSize: 20,
-                fontWeight: 'bold'
-            }
-        },
-        tooltip: {
-            trigger: 'axis',
-            formatter: function(params) {
-                const year = params[0].axisValue;
-                let result = year + '年<br/>';
-                
-                params.forEach(param => {
-                    const countryName = param.seriesName.includes('中国') ? '中国' : '美国';
-                    const seriesType = param.seriesName.replace('中国', '').replace('美国', '').trim();
-                    const isGrowth = seriesType.includes('增速');
-                    const value = param.value !== null && param.value !== undefined ? param.value : '无数据';
-                    const formattedValue = isGrowth ? formatPercent(value) : formatNumber(value);
-                    
-                    result += countryName + ' - ' + seriesType + ': ' + formattedValue + '<br/>';
-                });
-                
-                return result;
-            },
-            backgroundColor: colors.background,
-            borderColor: '#ccc',
-            borderWidth: 1
-        },
-        legend: {
-            type: 'scroll',
-            bottom: 10,
-            data: [
-                '中国 名义GDP', '美国 名义GDP', 
-                '中国 实际GDP', '美国 实际GDP', 
-                '中国 GDP(PPP)', '美国 GDP(PPP)',
-                '中国 名义增速', '美国 名义增速',
-                '中国 实际增速', '美国 实际增速',
-                '中国 PPP增速', '美国 PPP增速'
-            ],
-            selected: {
-                '中国 名义GDP': true,
-                '美国 名义GDP': true,
-                '中国 实际GDP': false,
-                '美国 实际GDP': false,
-                '中国 GDP(PPP)': false,
-                '美国 GDP(PPP)': false,
-                '中国 名义增速': false,
-                '美国 名义增速': false,
-                '中国 实际增速': false,
-                '美国 实际增速': false,
-                '中国 PPP增速': false,
-                '美国 PPP增速': false
-            }
-        },
-        grid: [
-            { left: '7%', right: '7%', top: 80, height: '35%', containLabel: true }
-        ],
-        xAxis: [
-            {
-                type: 'category',
-                data: gdpData.years,
-                gridIndex: 0,
-                axisLine: { lineStyle: { color: '#999' } },
-                axisLabel: { formatter: '{value}年' }
-            }
-        ],
-        yAxis: [
-            {
-                type: 'value',
-                name: 'GDP值',
-                gridIndex: 0,
-                axisLine: { lineStyle: { color: '#999' } },
-                splitLine: { lineStyle: { color: colors.grid } },
-                axisLabel: {
-                    formatter: function(value) {
-                        if (value >= 1000) {
-                            return (value / 1000).toFixed(0) + '万亿';
-                        } else {
-                            return value;
-                        }
-                    }
-                }
-            }
-        ],
-        dataZoom: [
-            {
-                type: 'inside',
-                start: 0,
-                end: 100,
-                xAxisIndex: [0]
-            },
-            {
-                type: 'slider',
-                start: 0,
-                end: 100,
-                bottom: 60,
-                xAxisIndex: [0]
-            }
-        ],
-        toolbox: {
-            feature: {
-                dataZoom: {},
-                restore: {},
-                saveAsImage: {}
-            },
-            right: 20,
-            top: 20
-        },
-        series: [
-            // 名义GDP
-            {
-                name: '中国 名义GDP',
-                type: 'line',
-                data: nominalData.china,
-                symbol: 'circle',
-                symbolSize: 6,
-                itemStyle: { color: colors.china },
-                lineStyle: { width: 3 }
-            },
-            {
-                name: '美国 名义GDP',
-                type: 'line',
-                data: nominalData.usa,
-                symbol: 'circle',
-                symbolSize: 6,
-                itemStyle: { color: colors.usa },
-                lineStyle: { width: 3 }
-            },
-            // 实际GDP
-            {
-                name: '中国 实际GDP',
-                type: 'line',
-                data: realData.china,
-                symbol: 'circle',
-                symbolSize: 6,
-                itemStyle: { color: colors.china },
-                lineStyle: { width: 3, type: 'dashed' }
-            },
-            {
-                name: '美国 实际GDP',
-                type: 'line',
-                data: realData.usa,
-                symbol: 'circle',
-                symbolSize: 6,
-                itemStyle: { color: colors.usa },
-                lineStyle: { width: 3, type: 'dashed' }
-            },
-            // GDP (PPP)
-            {
-                name: '中国 GDP(PPP)',
-                type: 'line',
-                data: pppData.china,
-                symbol: 'circle',
-                symbolSize: 6,
-                itemStyle: { color: colors.china },
-                lineStyle: { width: 3, type: 'dotted' }
-            },
-            {
-                name: '美国 GDP(PPP)',
-                type: 'line',
-                data: pppData.usa,
-                symbol: 'circle',
-                symbolSize: 6,
-                itemStyle: { color: colors.usa },
-                lineStyle: { width: 3, type: 'dotted' }
-            },
-            // 名义GDP增速
-            {
-                name: '中国 名义增速',
-                type: 'line',
-                data: nominalGrowthData.china,
-                symbol: 'circle',
-                symbolSize: 6,
-                yAxisIndex: 0,
-                itemStyle: { color: colors.china },
-                lineStyle: { width: 2 }
-            },
-            {
-                name: '美国 名义增速',
-                type: 'line',
-                data: nominalGrowthData.usa,
-                symbol: 'circle',
-                symbolSize: 6,
-                yAxisIndex: 0,
-                itemStyle: { color: colors.usa },
-                lineStyle: { width: 2 }
-            },
-            // 实际GDP增速
-            {
-                name: '中国 实际增速',
-                type: 'line',
-                data: realGrowthData.china,
-                symbol: 'circle',
-                symbolSize: 6,
-                yAxisIndex: 0,
-                itemStyle: { color: colors.china },
-                lineStyle: { width: 2, type: 'dashed' }
-            },
-            {
-                name: '美国 实际增速',
-                type: 'line',
-                data: realGrowthData.usa,
-                symbol: 'circle',
-                symbolSize: 6,
-                yAxisIndex: 0,
-                itemStyle: { color: colors.usa },
-                lineStyle: { width: 2, type: 'dashed' }
-            },
-            // GDP (PPP) 增速
-            {
-                name: '中国 PPP增速',
-                type: 'line',
-                data: pppGrowthData.china,
-                symbol: 'circle',
-                symbolSize: 6,
-                yAxisIndex: 0,
-                itemStyle: { color: colors.china },
-                lineStyle: { width: 2, type: 'dotted' }
-            },
-            {
-                name: '美国 PPP增速',
-                type: 'line',
-                data: pppGrowthData.usa,
-                symbol: 'circle',
-                symbolSize: 6,
-                yAxisIndex: 0,
-                itemStyle: { color: colors.usa },
-                lineStyle: { width: 2, type: 'dotted' }
-            }
-        ]
-    };
-    
-    // 渲染交互式图表
-    interactiveChart.setOption(option, true);
-    
-    // 添加快速切换按钮
-    if (!document.querySelector('.interactive-controls')) {
-        const container = document.getElementById('interactive-chart-container');
-        const controls = document.createElement('div');
-        controls.className = 'interactive-controls';
-        
-        const buttons = [
-            { id: 'btn-nominal', text: '名义GDP' },
-            { id: 'btn-real', text: '实际GDP' },
-            { id: 'btn-ppp', text: 'GDP(PPP)' },
-            { id: 'btn-growth', text: '增速对比' },
-            { id: 'btn-all', text: '全部指标' }
-        ];
-        
-        buttons.forEach(button => {
-            const btn = document.createElement('button');
-            btn.id = button.id;
-            btn.textContent = button.text;
-            btn.addEventListener('click', () => {
-                toggleInteractiveView(button.id);
-            });
-            controls.appendChild(btn);
-        });
-        
-        container.insertBefore(controls, document.getElementById('interactive-chart'));
-        
-        // 默认选中第一个按钮
-        document.getElementById('btn-nominal').classList.add('active');
-    }
-}
-
-// 切换交互式视图
-function toggleInteractiveView(viewId) {
-    const allButtons = document.querySelectorAll('.interactive-controls button');
-    allButtons.forEach(btn => btn.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
-    
-    // 默认所有显示为false
-    const legendStatus = {
-        '中国 名义GDP': false, '美国 名义GDP': false,
-        '中国 实际GDP': false, '美国 实际GDP': false,
-        '中国 GDP(PPP)': false, '美国 GDP(PPP)': false,
-        '中国 名义增速': false, '美国 名义增速': false,
-        '中国 实际增速': false, '美国 实际增速': false,
-        '中国 PPP增速': false, '美国 PPP增速': false
-    };
-    
-    // 根据选择修改显示状态
-    switch (viewId) {
-        case 'btn-nominal':
-            legendStatus['中国 名义GDP'] = true;
-            legendStatus['美国 名义GDP'] = true;
-            break;
-        case 'btn-real':
-            legendStatus['中国 实际GDP'] = true;
-            legendStatus['美国 实际GDP'] = true;
-            break;
-        case 'btn-ppp':
-            legendStatus['中国 GDP(PPP)'] = true;
-            legendStatus['美国 GDP(PPP)'] = true;
-            break;
-        case 'btn-growth':
-            legendStatus['中国 名义增速'] = true;
-            legendStatus['美国 名义增速'] = true;
-            legendStatus['中国 实际增速'] = true;
-            legendStatus['美国 实际增速'] = true;
-            legendStatus['中国 PPP增速'] = true;
-            legendStatus['美国 PPP增速'] = true;
-            break;
-        case 'btn-all':
-            Object.keys(legendStatus).forEach(key => {
-                legendStatus[key] = true;
-            });
-            break;
-    }
-    
-    // 更新图表的显示状态
-    interactiveChart.setOption({
-        legend: {
-            selected: legendStatus
-        }
-    });
+    chart.setOption(option, true);
 }
 
 // 从当前选择获取数据
@@ -648,10 +327,7 @@ function getChartInfo(chartType) {
 
 // 窗口大小变化时调整图表大小
 window.addEventListener('resize', () => {
-    if (staticChart) {
-        staticChart.resize();
-    }
-    if (interactiveChart) {
-        interactiveChart.resize();
+    if (chart) {
+        chart.resize();
     }
 });
